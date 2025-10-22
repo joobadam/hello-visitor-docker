@@ -1,0 +1,70 @@
+version: "3.8"
+services:
+  frontend:
+    container_name: hello-visitor-frontend
+    build: ./frontend
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    container_name: hello-visitor-backend
+    build: ./backend
+    ports:
+      - "8080:5000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_APP_PASS: ${GMAIL_APP_PASS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app-network
+
+  postgres:
+    container_name: hello-visitor-db
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: hello_visitor
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d hello_visitor"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-network
+
+  redis:
+    container_name: hello-visitor-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge

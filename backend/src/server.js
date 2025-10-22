@@ -1,0 +1,8 @@
+const express = require('express')
+const cors = require('cors')
+const submitRoute = require('./routes/submit')
+const app = express()
+app.use(cors())
+app.use(express.json())
+app.use('/api/submit', submitRoute)
+app.listen(5000)
